@@ -45,11 +45,15 @@ class MarkdownHighlighter : public QSyntaxHighlighter {
 #ifdef QT_QUICK_LIB
     Q_PROPERTY(QQuickTextDocument *textDocument READ textDocument WRITE
                    setTextDocument NOTIFY textDocumentChanged)
+    Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
 
     QQuickTextDocument *m_quickDocument = nullptr;
+    QString m_language = QStringLiteral("");
+    bool m_highlightAsCode = false;
 
    signals:
     void textDocumentChanged();
+    void languageChanged();
 
    public:
     inline QQuickTextDocument *textDocument() const { return m_quickDocument; };
@@ -59,6 +63,27 @@ class MarkdownHighlighter : public QSyntaxHighlighter {
         setDocument(m_quickDocument->textDocument());
         Q_EMIT textDocumentChanged();
     };
+
+    QString language() const
+    {
+        return m_language;
+    }
+
+    void setLanguage(const QString &newLanguage)
+    {
+        if (m_language == newLanguage)
+            return;
+        m_language = newLanguage;
+
+        // Set the flag to indicate full-text code highlighting
+        m_highlightAsCode = true;
+
+        // Trigger a rehighlight to apply the new language to the entire document
+        rehighlight();
+
+        emit languageChanged();
+    }
+
 #endif
 
    public:
@@ -215,6 +240,8 @@ class MarkdownHighlighter : public QSyntaxHighlighter {
         CodeSystemVerilogComment = 251,
     };
     Q_ENUM(HighlighterState)
+
+    HighlighterState m_languageState = HighlighterState::NoState;
 
     static void setTextFormats(
         QHash<HighlighterState, QTextCharFormat> formats);

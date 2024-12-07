@@ -402,16 +402,34 @@ void MarkdownHighlighter::setTextFormat(HighlighterState state,
  * @param text
  */
 void MarkdownHighlighter::highlightBlock(const QString &text) {
-    if (currentBlockState() == HeadlineEnd) {
-        currentBlock().previous().setUserState(NoState);
-        addDirtyBlock(currentBlock().previous());
-    }
-    setCurrentBlockState(HighlighterState::NoState);
-    currentBlock().setUserState(HighlighterState::NoState);
+    if (m_highlightAsCode) {
+        // Map m_language to the corresponding HighlighterState
+        HighlighterState langEnum = _langStringToEnum.value(m_language, HighlighterState::NoState);
 
+        // If the language is valid, set the current block state
+        if (langEnum != HighlighterState::NoState) {
+            setCurrentBlockState(langEnum);
+
+                      // Apply code block format to the entire line
+            setFormat(0, text.length(), _formats[CodeBlock]);
+
+                      // Call highlightSyntax to apply language-specific highlighting
+            highlightSyntax(text);
+        } else {
+            // If the language is not recognized, apply default code formatting
+            setCurrentBlockState(CodeBlock);
+            setFormat(0, text.length(), _formats[CodeBlock]);
+        }
+        // Return here to skip other Markdown processing
+        return;
+    }
+
+              // Proceed with existing Markdown highlighting logic
     highlightMarkdown(text);
     _highlightingFinished = true;
 }
+
+
 
 void MarkdownHighlighter::highlightMarkdown(const QString &text) {
     const bool isBlockCodeBlock = isCodeBlock(previousBlockState()) ||
